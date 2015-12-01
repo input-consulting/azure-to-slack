@@ -7,13 +7,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace AzureToSlack
+namespace Input.AzureToSlack
 {
     public class SlackClient
     {
         private readonly Uri _uri;
         private readonly string _channel;
-        
+
         protected SlackClient() {/* noop */}
 
         public SlackClient(string urlWithAccessToken)
@@ -30,7 +30,7 @@ namespace AzureToSlack
         private Payload BuildPayload(string text, string username, string channel, IEnumerable<Attachment> attachments = null)
         {
             username = username ?? "";
-            
+
             var payload = new Payload
             {
                 Channel = channel,
@@ -41,9 +41,9 @@ namespace AzureToSlack
 
             return payload;
         }
-        
+
         private HttpClient BuildHttpClient()
-        {                        
+        {
             var handler = new HttpClientHandler
             {
                 ClientCertificateOptions = ClientCertificateOption.Automatic,
@@ -123,6 +123,6 @@ namespace AzureToSlack
         {
             Title = title;
         }
-    }	
+    }
 }
 
