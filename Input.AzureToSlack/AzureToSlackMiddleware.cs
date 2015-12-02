@@ -10,25 +10,36 @@ using Input.AzureToSlack.Extensions;
 
 namespace Input.AzureToSlack
 {    
+    internal class AzureDeployMessage
+    {
+        public string status { get; set; }
+        public string statusText { get; set; }
+        public bool complete { get; set; }
+        public string progress { get; set; }
+        public string author { get; set; }
+        public string deployer { get; set; }
+        public DateTime startTime { get; set; }
+        public DateTime endTime { get; set; }
+        public string message { get; set; }
+        public string siteName { get; set; }
+        public string id { get; set; }
+    }    
+    
     public class AzureToSlackMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly Action<AzureToSlackOptions> _optionsDelegate;
         private readonly AzureToSlackOptions _options;
         private readonly ILogger _log;
 
-        public AzureToSlackMiddleware(RequestDelegate next, Action<AzureToSlackOptions> options, ILoggerFactory loggerFactory)
+        public AzureToSlackMiddleware(RequestDelegate next, AzureToSlackOptions options, ILoggerFactory loggerFactory)
         {
             _next = next;
-            _optionsDelegate = options;
-            _options = new AzureToSlackOptions();
+            _options = options;
             _log = loggerFactory.CreateLogger("AzureToSlack");
         }
 
         public async Task Invoke(HttpContext context)
         {
-            _optionsDelegate(_options);
-
             try
             {                
                 if (IsValidAzureBuildRequest(context))
@@ -42,12 +53,12 @@ namespace Input.AzureToSlack
                     await PostAzureDeployMessageToSlack(body, channel);
                     await context.ReplyWith(200);
                     
-                    _log.LogInformation("Successfully sent message to Slack");
+                    _log.LogInformation("Successfully sent message to Slack");                    
                 }
                 else
                 {
-                    await context.ReplyWith(400);
-                    _log.LogWarning("Not a valid Azure request");
+                    _log.LogWarning("Invalid Azure request");
+                    await _next(context);
                 }
             }
             catch (System.Exception ex)
@@ -55,11 +66,9 @@ namespace Input.AzureToSlack
                 _log.LogError("Error", ex);
                 await context.ReplyWith(500);
             }
-
-            await _next(context);
         }
 
-        private async Task PostAzureDeployMessageToSlack(AzureDeployMessage body, string channel = null)
+        private async Task PostAzureDeployMessageToSlack(AzureDeployMessage body, string channel)
         {            
             var success = (body.status == "success" && body.complete) ? "Published" : "Failed";
             var username = body.author;
@@ -105,23 +114,15 @@ namespace Input.AzureToSlack
 
         private bool IsValidAzureBuildRequest(HttpContext context)
         {
-            return context.Request.Method.Equals("post", StringComparison.OrdinalIgnoreCase);
+            var isMethodPost = context.Request.Method.Equals("post", StringComparison.OrdinalIgnoreCase);
+            var isRequestPatternLegit = true;
+            
+            if ( !string.IsNullOrEmpty(_options.RequestPattern) && context.Request.Path.HasValue ) {
+                isRequestPatternLegit = context.Request.Path.Value.IndexOf(_options.RequestPattern, StringComparison.OrdinalIgnoreCase) != -1;
+            }
+                        
+            return isMethodPost && isRequestPatternLegit;
         }
 
-    }
-
-    internal class AzureDeployMessage
-    {
-        public string status { get; set; }
-        public string statusText { get; set; }
-        public bool complete { get; set; }
-        public string progress { get; set; }
-        public string author { get; set; }
-        public string deployer { get; set; }
-        public DateTime startTime { get; set; }
-        public DateTime endTime { get; set; }
-        public string message { get; set; }
-        public string siteName { get; set; }
-        public string id { get; set; }
     }
 }

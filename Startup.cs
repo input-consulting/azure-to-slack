@@ -1,3 +1,4 @@
+using Input.AzureToSlack;
 using Microsoft.AspNet.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,7 @@ namespace AzureToSlack
         public Startup()
         {
             var builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
-                
+               
             builder.AddEnvironmentVariables();
             Configuration = builder.Build();
             
@@ -31,7 +32,7 @@ namespace AzureToSlack
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
             
-            app.UseAzureToSlack( options => options.SlackUrl = _slackUri );
+            app.UseAzureToSlack( _slackUri);
         }
     }
 }
